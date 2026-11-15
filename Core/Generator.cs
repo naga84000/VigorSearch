@@ -22,7 +22,7 @@ public static class Generator
 {
     static readonly HashSet<string> HeadSkills = new() { "超会心", "攻撃", "火属性攻撃強化", "体術" };
     static readonly HashSet<string> LastSkills = new() { "狂化", "狂竜症【翔】", "状態異常確定蓄積", "剛心" };
-
+    public const int Stride = 9;
     static Skill[] PickTable(uint r, out int div)
     {
         if (r <= 15) { div = 93; return SkillData.C; }
@@ -42,14 +42,14 @@ public static class Generator
         return -1; // 該当なし
     }
 
-    static int GetLevel(int[] th, int rng)
+    internal static int GetLevel(int[] th, int rng)
     {
         for (int i = 0; i < th.Length; i++)
             if (rng <= th[i]) return i + 1;
         return th.Length;
     }
 
-    static string SlotName(uint r)
+    internal static string SlotName(uint r)
     {
         int pos = 0;
         foreach (var (name, w) in SkillData.Slots)

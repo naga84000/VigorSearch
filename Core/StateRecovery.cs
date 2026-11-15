@@ -6,33 +6,37 @@ public record RecoveryResult(bool Success, XorShiftState State, string Log);
 
 /// <summary>
 /// 観測したスキル名の並びから、XorShiftの初期State(128bit)を復元する。
-/// Pythonの記号シミュレーション + GF(2)のガウス消去をそのまま移植したもの。
+/// 覇気: Aランク第1スキル(%224 → 下位5bit)を1件9消費で観測
+/// 円環: Aランク第2スキル(%192 → 下位6bit)を1件8消費で観測
 /// </summary>
 public static class StateRecovery
 {
-    const int Stride = 9;  // 1件あたりのNext()回数
     const int Offset = 1;  // 1行目の抽選が、復元stateからの1回目のNext()
 
-    // スキル名 -> %224 の取りうる値(Aテーブルの重みから作る)
-    static readonly Dictionary<string, int[]> Types = BuildTypes();
 
-    static Dictionary<string, int[]> BuildTypes()
+    // スキル名 -> Aテーブルの中で取りうる値(重みの範囲)
+    static readonly Dictionary<string, int[]> VigorTypes = BuildTypes(SkillData.A);      // 合計224
+    static readonly Dictionary<string, int[]> RingTypes = BuildTypes(RingSkillData.A);   // 合計192
+
+    static Dictionary<string, int[]> BuildTypes(Skill[] table)
     {
         var d = new Dictionary<string, int[]>();
         int pos = 0;
-        foreach (var s in SkillData.A)
+        foreach (var s in table)
         {
             d[s.name] = Enumerable.Range(pos, s.w).ToArray();
             pos += s.w;
         }
+       
         return d;
     }
 
-    // 取りうる値すべてで共通する下位5bit (224は32の倍数なので下位5bitはそのまま観測できる)
-    static (uint mask, uint value) CommonBits(int[] rs)
+    // 取りうる値すべてで共通する下位ビット
+    // (224は32の倍数 → 下位5bit、192は64の倍数 → 下位6bit は、そのまま観測できる)
+    static (uint mask, uint value) CommonBits(int[] rs, uint lowMask)
     {
-        uint mask = 31, v = (uint)rs[0] & 31;
-        foreach (var r in rs) mask &= ~(((uint)r & 31) ^ v);
+        uint mask = lowMask, v = (uint)rs[0] & lowMask;
+        foreach (var r in rs) mask &= ~(((uint)r & lowMask) ^ v);
         return (mask, v & mask);
     }
 
@@ -80,8 +84,13 @@ public static class StateRecovery
         return outs;
     }
 
-    public static RecoveryResult Recover(string path)
+    // ---------- 入口 ----------
+    public static RecoveryResult Recover(string path, bool ring = false)
     {
+        var types = ring ? RingTypes : VigorTypes;
+        int stride = ring ? 8 : 9;
+        uint lowMask = ring ? 63u : 31u;
+
         var log = new StringBuilder();
         var lines = File.ReadAllLines(path, Encoding.UTF8)
                         .Select(l => l.Trim())
@@ -91,12 +100,13 @@ public static class StateRecovery
         var obs = new List<(int step, uint mask, uint value)>();
         for (int k = 0; k < lines.Length; k++)
         {
-            if (!Types.TryGetValue(lines[k], out var vals)) continue; // 「はずれ」等は飛ばす(行番号は進める)
-            var (m, v) = CommonBits(vals);
-            obs.Add((Offset + Stride * k, m, v));
+            if (!types.TryGetValue(lines[k], out var vals)) continue; // 「はずれ」等は飛ばす(行番号は進める)
+            var (m, v) = CommonBits(vals, lowMask);
+            if (m == 0) continue;
+            obs.Add((Offset + stride * k, m, v));
         }
 
-        log.AppendLine($"行数 {lines.Length} / 使える観測 {obs.Count}");
+        log.AppendLine($"{(ring ? "円環" : "覇気")} / 行数 {lines.Length} / 使える観測 {obs.Count}");
         if (obs.Count == 0)
         {
             log.AppendLine("使える観測がありません");
@@ -105,7 +115,7 @@ public static class StateRecovery
         return Solve(obs, log);
     }
 
-    // ---------- 計算 ----------
+    // ---------- 解く ----------
     static RecoveryResult Solve(List<(int step, uint mask, uint value)> obs, StringBuilder log)
     {
         int maxStep = obs.Max(o => o.step);
