@@ -4,7 +4,7 @@ namespace VigorSearch;
 public delegate Row GenerateFn(ref XorShiftState rng, int index);
 
 /// <summary>
-/// 円環バージョンの抽選。第1スキルは固定(sitei)、第2スキルだけ乱数で決まる。
+/// 円環バージョンの抽選。第1スキルは固定(sitei)で第2スキルだけ乱数で決まる。
 /// 1件あたりNext()を8回消費する(覇気は9回)。
 /// </summary>
 public sealed class RingGenerator
@@ -49,7 +49,7 @@ public sealed class RingGenerator
         return table.Length - 1; // div は重み合計なので通常ここには来ない
     }
 
-    /// <summary>第1スキルを除いた表を rotateRnd % 個数 だけ回転し、重みで選び直す。</summary>
+    /// <summary>第1スキルを除いた表を rotateRnd % 個数 だけ回転し重みで選び直す。</summary>
     static Skill PickAfterRotate(Skill[] table, string exclude, uint rotateRnd, uint pickRnd)
     {
         var rest = table.Where(x => x.name != exclude).ToArray();
@@ -76,7 +76,7 @@ public sealed class RingGenerator
         uint rndSp = rng.Next();                         // #1
         var sk2 = t2[PickIndex(rndSp % (uint)div, t2)];
 
-        // 第1スキルと被ったら、第1スキルのランクの表から選び直す
+        // 第1スキルと被ったら第1スキルのランクの表から選び直す
         if (sk2.name == sitei)
             sk2 = PickAfterRotate(t1, sitei, rndSp, rndSp);
 

@@ -11,7 +11,7 @@ public record RecoveryResult(bool Success, XorShiftState State, string Log);
 /// </summary>
 public static class StateRecovery
 {
-    const int Offset = 1;  // 1行目の抽選が、復元stateからの1回目のNext()
+    const int Offset = 1;  // 1行目の抽選が復元stateからの1回目のNext()
 
 
     // スキル名 -> Aテーブルの中で取りうる値(重みの範囲)
@@ -32,7 +32,7 @@ public static class StateRecovery
     }
 
     // 取りうる値すべてで共通する下位ビット
-    // (224は32の倍数 → 下位5bit、192は64の倍数 → 下位6bit は、そのまま観測できる)
+    // (224は32の倍数 → 下位5bit、192は64の倍数 → 下位6bit はそのまま観測できる)
     static (uint mask, uint value) CommonBits(int[] rs, uint lowMask)
     {
         uint mask = lowMask, v = (uint)rs[0] & lowMask;
@@ -115,7 +115,7 @@ public static class StateRecovery
         return Solve(obs, log);
     }
 
-    // ---------- 解く ----------
+    // ---------- 復元 ----------
     static RecoveryResult Solve(List<(int step, uint mask, uint value)> obs, StringBuilder log)
     {
         int maxStep = obs.Max(o => o.step);

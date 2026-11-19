@@ -60,7 +60,7 @@ public static class Generator
         return "?";
     }
 
-    /// <summary>1件分を生成し、rngを9回分進める。</summary>
+    /// <summary>1件分を生成しrngを9回分進める。</summary>
     public static Row Generate(ref XorShiftState rng, int index)
     {
         var before = rng;
@@ -75,6 +75,9 @@ public static class Generator
         rnd = rng.Next();
         var t2 = PickTable(rnd % 100, out div);
         rnd = rng.Next();
+
+        //バグ修正前
+        /*
         if (i1 >= 0 && t2 == t1)
         {
             string n1 = t1[i1].name;
@@ -85,7 +88,22 @@ public static class Generator
             t2 = t2.Where(x => x.name != n1).ToArray();
         }
         int i2 = PickIndex(rnd % (uint)div, t2);
+        */
 
+
+        bool headCase = false;
+        if (i1 >= 0 && t2 == t1)
+        {
+            string n1 = t1[i1].name;
+            int w = t1[i1].w;
+            if (HeadSkills.Contains(n1)) { div -= (w - 1); headCase = true; }
+            else if (LastSkills.Contains(n1)) div -= (w + 1);
+            else div -= w;
+            t2 = t2.Where(x => x.name != n1).ToArray();
+        }
+        int i2 = headCase
+            ? PickIndexFirstPlusOne(rnd % (uint)div, t2)
+            : PickIndex(rnd % (uint)div, t2);
         // レベル
         rng.Next();
         rnd = rng.Next();
@@ -111,5 +129,16 @@ public static class Generator
             Before = before,
             After = rng,
         };
+    }
+    // 先頭のスキルの幅を+1して選ぶ(Head を除いた直後の表用)
+    static int PickIndexFirstPlusOne(uint r, Skill[] table)
+    {
+        int pos = 1;   // 先頭に+1
+        for (int i = 0; i < table.Length; i++)
+        {
+            pos += table[i].w;
+            if (r < pos) return i;
+        }
+        return table.Length - 1;
     }
 }

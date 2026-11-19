@@ -1,6 +1,6 @@
 using System.Diagnostics;
 using System.Globalization;
-
+using Microsoft.Win32;
 namespace VigorSearch;
 
 public class MainForm : Form
@@ -150,7 +150,8 @@ public class MainForm : Form
         btnCancel.Click += (_, _) => cts?.Cancel();
         btnRecover.Click += OnRecover;
         AcceptButton = btnSearch;
-
+        LoadSavedState();
+        FormClosing += (_, _) => SaveState();
     }
 
     // ---------- UI helpers ----------
@@ -213,9 +214,9 @@ public class MainForm : Form
     void OnVersionChanged(object sender, EventArgs e)
     {
         RefillSkillLists();
-        status.Text = IsRing
-            ? "円環: 「スキル1」に固定する第1スキルを選んでください(スキル2はランダム)"
-            : "覇気";
+        status.Text = "";
+        if (IsRing)
+            status.Text = "「スキル1」に指定する第1スキルを選んでください(スキル2はランダム)";
     }
 
 
@@ -422,5 +423,38 @@ public class MainForm : Form
         {
             btnRecover.Enabled = true;
         }
+    }
+    const string RegKey = @"Software\VigorSearch";
+
+    void SaveState()
+    {
+        try
+        {
+            using var k = Registry.CurrentUser.CreateSubKey(RegKey);
+            for (int i = 0; i < 4; i++) k.SetValue($"S{i}", stateBoxes[i].Text.Trim());
+        }
+        catch { /* 保存できなくてもアプリは終了する */ }
+    }
+
+    void LoadSavedState()
+    {
+        try
+        {
+            using var k = Registry.CurrentUser.OpenSubKey(RegKey);
+            if (k == null) return;
+
+            var vals = new string[4];
+            for (int i = 0; i < 4; i++)
+            {
+                var t = k.GetValue($"S{i}") as string;
+                if (t == null) return;
+                var h = t.StartsWith("0x", StringComparison.OrdinalIgnoreCase) ? t[2..] : t;
+                if (!uint.TryParse(h, NumberStyles.AllowHexSpecifier, CultureInfo.InvariantCulture, out _)) return;
+                vals[i] = t;
+            }
+
+            for (int i = 0; i < 4; i++) stateBoxes[i].Text = vals[i];
+        }
+        catch { /* 読めなければ既定値のまま */ }
     }
 }
