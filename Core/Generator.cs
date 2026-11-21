@@ -64,6 +64,7 @@ public static class Generator
     public static Row Generate(ref XorShiftState rng, int index)
     {
         var before = rng;
+        before.Prev();
         uint rnd = rng.S3;
 
         // 1つ目のスキル
@@ -118,6 +119,7 @@ public static class Generator
         string slot = SlotName(rnd % 100);
         rng.Next();
 
+
         return new Row
         {
             Index = index,
@@ -128,7 +130,11 @@ public static class Generator
             Slot = slot,
             Before = before,
             After = rng,
+           
+
         };
+
+       
     }
     // 先頭のスキルの幅を+1して選ぶ(Head を除いた直後の表用)
     static int PickIndexFirstPlusOne(uint r, Skill[] table)

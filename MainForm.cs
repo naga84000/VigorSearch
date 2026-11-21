@@ -38,7 +38,7 @@ public class MainForm : Form
     {
         Text = "VigorSearch";
         Width = 960;
-        Height = 580;
+        Height = 620;
         StartPosition = FormStartPosition.CenterScreen;   // 起動時に画面中央へ
         Font = new Font("Yu Gothic UI", 9f);
         AutoScaleDimensions = new SizeF(96F, 96F);
@@ -58,24 +58,27 @@ public class MainForm : Form
         stateRow.Controls.Add(nudListCount);
         stateRow.Controls.Add(btnList);
         // 検索条件
-        var skillRow = NewFlow();
-        skillRow.Controls.AddRange(new Control[]
+        var skillRow1 = NewFlow();
+        skillRow1.Controls.AddRange(new Control[]
         {
-            Lbl("錬金"), cbVersion,        
-
-            Lbl("スキル1"), cbSkill1, Lbl("Lv≧"), nudLv1,
-            Lbl("スキル2"), cbSkill2, Lbl("Lv≧"), nudLv2,
-            Lbl("スロット"), cbSlot, chkAnyOrder,
+        Lbl("スキル1"), cbSkill1, Lbl("Lv≧"), nudLv1,
+        LblW("錬金", 60), cbVersion,
         });
-        skillRow.WrapContents = true;
+        var skillRow2 = NewFlow();
+        skillRow2.Controls.AddRange(new Control[]
+        {
+        Lbl("スキル2"), cbSkill2, Lbl("Lv≧"), nudLv2,
+        LblW("スロット", 60), cbSlot, chkAnyOrder,
+        });
         var runRow = NewFlow();
         runRow.Controls.AddRange(new Control[]
         {
-            Lbl("探索範囲(件)"), nudRange, Lbl("最大ヒット数"), nudMaxHit,
-            btnSearch, btnCancel, bar,
+        Lbl("探索範囲(件)"), nudRange, Lbl("最大ヒット数"), nudMaxHit,
+        btnSearch, btnCancel, bar,
         });
         var searchPanel = new FlowLayoutPanel { AutoSize = true, FlowDirection = FlowDirection.TopDown, WrapContents = false };
-        searchPanel.Controls.Add(skillRow);
+        searchPanel.Controls.Add(skillRow1);
+        searchPanel.Controls.Add(skillRow2);
         searchPanel.Controls.Add(runRow);
         var obsRow = NewFlow();
         obsRow.Controls.Add(Lbl("観測ファイル"));
@@ -158,7 +161,8 @@ public class MainForm : Form
     static FlowLayoutPanel NewFlow() => new() { AutoSize = true, WrapContents = false };
 
     static Label Lbl(string t) => new() { Text = t, AutoSize = true, Margin = new Padding(10, 7, 3, 3) };
-
+    static Label LblW(string t, int w) =>
+     new() { Text = t, AutoSize = true, MinimumSize = new Size(w, 0), Margin = new Padding(10, 7, 3, 3) };
     static GroupBox Group(string title, Control inner)
     {
         var gb = new GroupBox { Text = title, Dock = DockStyle.Fill, AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, Padding = new Padding(6, 4, 6, 6) };
@@ -203,7 +207,7 @@ public class MainForm : Form
         if (!TryGetSkillFilter(cbSkill1, out var sitei)) return false;
         if (sitei == null)
         {
-            MessageBox.Show("円環では、「スキル1」に固定する第1スキルを選んでください。", "入力エラー");
+            MessageBox.Show("「スキル1」に固定する第1スキルを選んでください。", "入力エラー");
             cbSkill1.Focus();
             return false;
         }

@@ -23,6 +23,14 @@ public struct XorShiftState
         S3 = newS3;
         return newS3;
     }
-
+    public void Prev()
+    {
+        uint oldS3 = S2, oldS2 = S1, oldS1 = S0;
+        uint x = S3 ^ oldS3;                 // (t1>>4) ^ t0
+        uint y = x ^ ((oldS3 >> 17) >> 4);   // t0 ^ (t0>>4)
+        uint t0 = y ^ (y >> 4) ^ (y >> 8) ^ (y >> 12) ^ (y >> 16) ^ (y >> 20) ^ (y >> 24) ^ (y >> 28);
+        uint oldS0 = t0 ^ (t0 << 15) ^ (t0 << 30);
+        S0 = oldS0; S1 = oldS1; S2 = oldS2; S3 = oldS3;
+    }
     public override string ToString() => $"{S0:X8} {S1:X8} {S2:X8} {S3:X8}";
 }
