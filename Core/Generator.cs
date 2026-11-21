@@ -64,7 +64,6 @@ public static class Generator
     public static Row Generate(ref XorShiftState rng, int index)
     {
         var before = rng;
-        before.Prev();
         uint rnd = rng.S3;
 
         // 1つ目のスキル
