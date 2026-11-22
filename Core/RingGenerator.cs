@@ -21,6 +21,8 @@ public sealed class RingGenerator
     readonly Skill[] t1;   // 第1スキルが属するランクの表
     readonly Skill sk1;    // 第1スキル本体
 
+    static readonly HashSet<string> HeadSkills = new() { "超会心", "攻撃", "火属性攻撃強化", "体術" };
+    static readonly HashSet<string> LastSkills = new() { "キノコ大好き", "弱点特効【属性】", "状態異常確定蓄積", "剛心" };
     public RingGenerator(string sitei)
     {
         this.sitei = sitei;
@@ -50,7 +52,7 @@ public sealed class RingGenerator
     }
 
     /// <summary>第1スキルを除いた表を rotateRnd % 個数 だけ回転し重みで選び直す。</summary>
-    static Skill PickAfterRotate(Skill[] table, string exclude, uint rotateRnd, uint pickRnd)
+    /*static Skill PickAfterRotate(Skill[] table, string exclude, uint rotateRnd, uint pickRnd)
     {
         var rest = table.Where(x => x.name != exclude).ToArray();
         int k = (int)(rotateRnd % (uint)rest.Length);
@@ -63,9 +65,41 @@ public sealed class RingGenerator
             r -= x.w;
             if (r <= 0) return x;   // 0以下になった最初のスキル
         }
-        return rotated[^1];          // 保険
-    }
+        return rotated[^1];          
+    }*/
 
+    // 補正の対象(0:補正なし 1:回転後の先頭 2:元の表の先頭 3:回転後の末尾 4:元の表の末尾)
+    public static int HeadMode = 2;   // 対象2, Head は total と対象の重みを +1
+    public static int LastMode = 4;   // 対象4, Last は total と対象の重みを -1
+
+    static Skill PickAfterRotate(Skill[] table, string exclude, uint rotateRnd, uint pickRnd)
+    {
+        var rest = table.Where(x => x.name != exclude).ToArray();
+        int k = (int)(rotateRnd % (uint)rest.Length);
+        var rotated = rest.Skip(k).Concat(rest.Take(k)).ToArray();
+
+        int delta = 0, mode = 0;
+        if (HeadSkills.Contains(exclude)) { delta = +1; mode = HeadMode; }
+        else if (LastSkills.Contains(exclude)) { delta = -1; mode = LastMode; }
+        if (mode == 0) delta = 0;
+
+        string adjName = delta == 0 ? null : mode switch
+        {
+            1 => rotated[0].name,
+            2 => rest[0].name,
+            3 => rotated[^1].name,
+            _ => rest[^1].name,
+        };
+
+        int total = rotated.Sum(x => x.w) + delta;
+        int r = (int)(pickRnd % (uint)total);
+        foreach (var x in rotated)
+        {
+            r -= x.w + (x.name == adjName ? delta : 0);
+            if (r <= 0) return x;
+        }
+        return rotated[^1];
+    }
     public Row Generate(ref XorShiftState rng, int index)
     {
         var before = rng;
