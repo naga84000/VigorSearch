@@ -76,20 +76,6 @@ public static class Generator
         var t2 = PickTable(rnd % 100, out div);
         rnd = rng.Next();
 
-        //バグ修正前
-        /*
-        if (i1 >= 0 && t2 == t1)
-        {
-            string n1 = t1[i1].name;
-            int w = t1[i1].w;
-            if (HeadSkills.Contains(n1)) div -= (w - 1);
-            else if (LastSkills.Contains(n1)) div -= (w + 1);
-            else div -= w;
-            t2 = t2.Where(x => x.name != n1).ToArray();
-        }
-        int i2 = PickIndex(rnd % (uint)div, t2);
-        */
-
 
         bool headCase = false;
         if (i1 >= 0 && t2 == t1)

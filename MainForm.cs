@@ -28,8 +28,7 @@ public class MainForm : Form
     readonly ProgressBar bar = new() { Width = 160, Height = 18, Margin = new Padding(12, 6, 3, 3) };
     readonly Label status = new() { AutoSize = true, Margin = new Padding(8, 7, 3, 3) };
     readonly DataGridView grid = new();
-
-    readonly TextBox txtObs = new() { Width = 120, Text = "obs.txt" };
+    readonly ComboBox cbObs = new() { Width = 160, DropDownStyle = ComboBoxStyle.DropDown };
     readonly Button btnRecover = new() { Text = "Stateを復元", AutoSize = true };
 
     CancellationTokenSource cts;
@@ -82,7 +81,7 @@ public class MainForm : Form
         searchPanel.Controls.Add(runRow);
         var obsRow = NewFlow();
         obsRow.Controls.Add(Lbl("観測ファイル"));
-        obsRow.Controls.Add(txtObs);
+        obsRow.Controls.Add(cbObs);
         obsRow.Controls.Add(btnRecover);
 
         var statePanel = new FlowLayoutPanel { AutoSize = true, FlowDirection = FlowDirection.TopDown, WrapContents = false };
@@ -100,6 +99,8 @@ public class MainForm : Form
             cb.AutoCompleteSource = AutoCompleteSource.ListItems;
         }
         RefillSkillLists();
+        RefillObsList();
+        cbObs.DropDown += (_, _) => RefillObsList();   // 開くたびに、最新の一覧にする
         cbVersion.SelectedIndexChanged += OnVersionChanged;
 
         cbSlot.Items.Add(AnyText);
@@ -349,7 +350,6 @@ public class MainForm : Form
                 progress.Report((int)(100L * j / range));
             }
 
-           // var r = Generator.Generate(ref st, j);
             var r = gen(ref st, j);
             if (slot != null && r.Slot != slot) continue;
 
@@ -388,8 +388,8 @@ public class MainForm : Form
 
     async void OnRecover(object sender, EventArgs e)
     {
-       
-        var name = txtObs.Text.Trim();
+
+        var name = cbObs.Text.Trim();
         var candidates = new[]
         {
             Path.Combine(AppContext.BaseDirectory, name),          // exeと同じフォルダ
@@ -460,5 +460,23 @@ public class MainForm : Form
             for (int i = 0; i < 4; i++) stateBoxes[i].Text = vals[i];
         }
         catch { /* 読めなければ既定値のまま */ }
+    }
+    void RefillObsList()
+    {
+        var current = cbObs.Text;
+        var files = new[] { AppContext.BaseDirectory, Directory.GetCurrentDirectory() }
+            .Distinct()
+            .Where(Directory.Exists)
+            .SelectMany(d => Directory.GetFiles(d, "*.txt"))
+            .Select(Path.GetFileName)
+            .Distinct()
+            .OrderBy(n => n)
+            .ToArray();
+
+        cbObs.Items.Clear();
+        cbObs.Items.AddRange(files);
+
+        if (!string.IsNullOrEmpty(current)) cbObs.Text = current;      // 入力中の値は、そのまま残す
+        else if (files.Length > 0) cbObs.Text = files[0];              // 最初は一覧の先頭
     }
 }
